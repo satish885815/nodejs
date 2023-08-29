@@ -7,6 +7,7 @@ const createUser = async (req, res) => {
   body.password = hashSync(body.password, salt);
   const response = await userModel.createUser(body);
   if (!response) {
+    
     res.status(404).send({
       statusCode: 404,
       statusMessage: "User Not Found",
