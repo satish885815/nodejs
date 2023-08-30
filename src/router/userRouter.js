@@ -6,9 +6,11 @@ const {
   getAllUser,
   userLogin,
 } = require("../controller/userController");
+
+const { verifyToken } = require("../auth/verifyToken");
 router.post("/", createUser);
-router.get("/:id", getUser);
-router.get("/", getAllUser);
+router.get("/:id", verifyToken, getUser);
+router.get("/", verifyToken, getAllUser);
 router.post("/login", userLogin);
 
 module.exports = router;
