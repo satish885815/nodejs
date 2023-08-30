@@ -1,45 +1,79 @@
-const { genSaltSync, hashSync } = require("bcrypt");
+const { genSaltSync, hashSync, compareSync } = require("bcrypt");
+const { sign } = require("jsonwebtoken");
 const userModel = require("../model/userModel");
+require("dotenv").config();
 
 const createUser = async (req, res) => {
   const body = req.body;
   const salt = genSaltSync(10);
   body.password = hashSync(body.password, salt);
-  const response = await userModel.createUser(body);
-  if (!response) {
+  try {
+    const response = await userModel.createUser(body);
+    res.status(200).send(response);
+  } catch (error) {
     res.status(404).send({
-      statusCode: 404,
-      statusMessage: "User Not Found",
+      statusCode: 400,
       message: error.message,
     });
   }
-  res.status(200).send(response);
 };
 
 const getUser = async (req, res) => {
   const { id } = req.params;
-
-  const response = await userModel.getUserById(id);
-  if (!response) {
+  try {
+    const response = await userModel.getUserById(id);
+    res.status(200).send(response);
+  } catch (error) {
     res.status(404).send({
       statusCode: 404,
-      statusMessage: "User Not Found",
-      message: error,
+      message: error.message,
     });
   }
-  res.status(200).send(response);
 };
 
 const getAllUser = async (req, res) => {
-  const response = await userModel.getAllUser();
-  if (!response) {
+  try {
+    const response = await userModel.getAllUser();
+    res.status(200).send(response);
+  } catch (error) {
     res.status(404).send({
       statusCode: 404,
-      statusMessage: "No user Exist",
-      message: error,
+      message: error.message,
     });
   }
-  res.status(200).send(response);
 };
 
-module.exports = { createUser, getUser, getAllUser };
+const userLogin = async (req, res) => {
+  try {
+    const { emailId, password } = req.body;
+    const response = await userModel.getUserByEmail(emailId);
+    const isPasswordMatch = compareSync(password, response.password);
+    if (!isPasswordMatch) {
+      res.status(401).send({
+        statusCode: 401,
+        message: "Incorrect password",
+      });
+      return;
+    }
+    const userData = {
+      id: response.id,
+      name: response.name,
+      emailId: response.emailId,
+    };
+    const jsonwebToken = sign(userData, process.env.secReateKey, {
+      expiresIn: "1h",
+    });
+    res.send({
+      succes: 1,
+      message: "User Login successfully",
+      token: jsonwebToken,
+    });
+  } catch (error) {
+    res.status(404).send({
+      statusCode: 404,
+      message: error.message,
+    });
+  }
+};
+
+module.exports = { createUser, getUser, getAllUser, userLogin };
